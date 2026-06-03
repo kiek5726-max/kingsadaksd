@@ -279,7 +279,6 @@
   }
 }
 
-    // ===== INIT =====
     document.addEventListener('DOMContentLoaded', () => {
       displayCartPage();
       if (localStorage.getItem('ksd_logged_in') === 'true') {
@@ -292,8 +291,15 @@
       }
     });
   </script>
-
+<script>
+    function removeFromCart(index) {
+        console.log("ກຳລັງລົບລາຍການທີ່: ", index);
+        let cart = JSON.parse(localStorage.getItem('cart')) || [];
+        cart.splice(index, 1);
+        localStorage.setItem('cart', JSON.stringify(cart));
+        location.reload(); 
+    }
+</script>
   <script src="ksd-common.js"></script>
-
 </body>
 </html>
