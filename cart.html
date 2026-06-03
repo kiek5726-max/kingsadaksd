@@ -246,44 +246,38 @@
     }
 
     // ===== SUBMIT ORDER =====
-    function submitOrder(e) {
-      e.preventDefault();
-      const cart = JSON.parse(localStorage.getItem('ksd_cart')) || [];
+    async function submitOrder(e) {
+  e.preventDefault();
+  const cart = JSON.parse(localStorage.getItem('ksd_cart')) || [];
+  
+  if (cart.length === 0) return alert('ກະຕ່າຫວ່າງເປົ່າ!');
 
-      if (cart.length === 0) {
-        alert('❌ ບໍ່ມີສິນຄ້າໃນກະຕ່າ ເລືອກສິນຄ້າກ່ອນເດີ້!');
-        return;
-      }
+  // ສ້າງຂໍ້ມູນ order
+  const orderData = {
+    date: new Date().toISOString(), // ໃຊ້ ISO ສາກົນດີກວ່າ
+    customer: document.getElementById('custName').value,
+    phone: document.getElementById('custPhone').value,
+    address: document.getElementById('custAddress').value,
+    total: cart.reduce((s, i) => s + (Number(i.price) * Number(i.quantity)), 0),
+    items: cart.map(i => `${i.name} x${i.quantity}`).join(', '),
+    status: 'pending' // ເພີ່ມສະຖານະເພື່ອໃຫ້ Admin ຄຸ້ມຄອງໄດ້
+  };
 
-      const name    = document.getElementById('custName').value.trim();
-      const phone   = document.getElementById('custPhone').value.trim();
-      const address = document.getElementById('custAddress').value.trim();
-      if (!name || !phone || !address) {
-        alert('❌ ກະລຸນາຕື່ມຂໍ້ມູນໃຫ້ຄົບ');
-        return;
-      }
-      const total   = cart.reduce((s, i) => s + (Number(i.price) * Number(i.quantity)), 0);
-      const items   = cart.map(i => `${i.name} x${i.quantity}`).join(', ');
-
-      const orders = JSON.parse(localStorage.getItem('backend_orders')) || [];
-      orders.push({
-        date: new Date().toLocaleString('lo-LA'),
-        customer: name,
-        phone,
-        address,
-        items,
-        total,
-        userPhone: phone.replace(/\s/g, ''),
-      });
-      localStorage.setItem('backend_orders', JSON.stringify(orders));
-
-      alert(`🎉 ສັ່ງຊື້ສຳເລັດ!\n\nຊື່: ${name}\nເບີໂທ: ${phone}\nຈຳນວນເງິນ: ${total.toLocaleString()} ກີບ\n\nຂອບໃຈທີ່ອຸດໜູນ KSD!`);
-
-      localStorage.removeItem('ksd_cart');
-      document.getElementById('orderForm').reset();
-      displayCartPage();
-      if (typeof updateCartBadge === 'function') updateCartBadge();
-    }
+  try {
+    // ເຊື່ອມຕໍ່ຫາ Firebase Database (orders table)
+    const { getDatabase, ref, push } = await import('https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js');
+    const db = getDatabase(); // ຕ້ອງໄດ້ຮັບ db instance
+    const ordersRef = ref(db, 'orders');
+    
+    await push(ordersRef, orderData); // ສົ່ງຂຶ້ນ Cloud
+    
+    alert('ສັ່ງຊື້ສຳເລັດ!');
+    localStorage.removeItem('ksd_cart'); // ລຶບກະຕ່າຫຼັງສັ່ງສຳເລັດ
+    location.reload();
+  } catch (error) {
+    console.error("Error saving order: ", error);
+  }
+}
 
     // ===== INIT =====
     document.addEventListener('DOMContentLoaded', () => {
