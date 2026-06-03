@@ -477,9 +477,11 @@
   });
 
   // ຟັງຊັນລຶບອໍເດີ (ເພີ່ມໃຫ້ເປັນ Global function)
-  window.deleteOrder = async (key) => {
-    if (!confirm('ຢືນຢັນລຶບອໍເດີນີ້?')) return;
-    await remove(ref(db, 'orders/' + key));
+  window.deleteOrder = (key) => {
+    const orderRef = ref(db, 'orders/' + key);
+    remove(orderRef)
+      .then(() => alert("ລຶບອໍເດີສຳເລັດ!"))
+      .catch((error) => console.error("ລຶບບໍ່ໄດ້: ", error));
   };
   function saveItem() {
     // 1. ເອົາຄ່າຈາກ input
