@@ -293,10 +293,11 @@
   </script>
 <script>
     function removeFromCart(index) {
+        console.log("ກຳລັງລົບລາຍການທີ່: ", index);
         let cart = JSON.parse(localStorage.getItem('cart')) || [];
         cart.splice(index, 1);
         localStorage.setItem('cart', JSON.stringify(cart));
-        location.reload(); // ສັ່ງໃຫ້ໜ້າຈໍໂຫຼດໃໝ່ເພື່ອໃຫ້ລາຍການທີ່ລົບຫາຍໄປ
+        location.reload(); 
     }
 </script>
   <script src="ksd-common.js"></script>
