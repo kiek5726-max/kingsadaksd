@@ -902,3 +902,19 @@ document.addEventListener('DOMContentLoaded', () => {
   // Setup real-time Firebase listeners
   setupFirebaseListeners();
 });
+document.addEventListener('DOMContentLoaded', () => {
+    // ໃຊ້ Event Delegation ເພື່ອຈັບເຫດການກົດປຸ່ມລົບ
+    document.addEventListener('click', function(e) {
+        if (e.target && e.target.classList.contains('delete-btn')) {
+            const index = e.target.getAttribute('data-index');
+            removeFromCart(index);
+        }
+    });
+});
+
+function removeFromCart(index) {
+    let cart = JSON.parse(localStorage.getItem('cart')) || [];
+    cart.splice(index, 1); // ລົບລາຍການອອກ
+    localStorage.setItem('cart', JSON.stringify(cart)); // ບັນທຶກໃໝ່
+    location.reload(); // Refresh ໜ້າເວັບ
+}
