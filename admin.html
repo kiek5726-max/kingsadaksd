@@ -481,6 +481,37 @@
     if (!confirm('ຢືນຢັນລຶບອໍເດີນີ້?')) return;
     await remove(ref(db, 'orders/' + key));
   };
+  function saveItem() {
+    // 1. ເອົາຄ່າຈາກ input
+    let name = document.getElementById('itemName').value;
+
+    if (name === "") {
+        alert("ກະລຸນາປ້ອນຂໍ້ມູນກ່ອນ!");
+        return;
+    }
+
+    // 2. ດຶງຂໍ້ມູນເກົ່າອອກມາ (ຖ້າມີ)
+    let items = JSON.parse(localStorage.getItem('adminItems')) || [];
+
+    // 3. ເພີ່ມລາຍຊື່ໃໝ່ເຂົ້າໄປ
+    items.push(name);
+
+    // 4. ບັນທຶກກັບລົງໄປໃນ LocalStorage
+    localStorage.setItem('adminItems', JSON.stringify(items));
+
+    alert("ບັນທຶກສຳເລັດແລ້ວ!");
+    document.getElementById('itemName').value = ""; // ລ້າງຊ່ອງປ້ອນຂໍ້ມູນ
+}
+  function loadItems() {
+    let items = JSON.parse(localStorage.getItem('adminItems')) || [];
+    let listElement = document.getElementById('itemList'); // ສົມມຸດວ່າທ່ານມີ <ul> ຫຼື <div> ເພື່ອສະແດງລາຍຊື່
+
+    listElement.innerHTML = ""; // ລ້າງຂໍ້ມູນເກົ່າອອກກ່ອນ
+
+    items.forEach(function(item, index) {
+        listElement.innerHTML += `<li>${item} <button onclick="deleteItem(${index})">ລົບ</button></li>`;
+    });
+}
 </script>
 </body>
 </html>
