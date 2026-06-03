@@ -308,7 +308,7 @@
             <td>${escHtml(u.phone)}</td>
             <td>${escHtml(u.age || '—')}</td>
             <td style="max-width:200px; word-break:break-word;">${escHtml(u.address || '—')}</td>
-            <td>${ADMIN_PHONES.includes(String(u.phone).replace(/\s/g,'')) ? '👑 Admin' : '👤 Member'}</td>
+            <td>${ADMIN_PHONES.includes(String(u.phone).replace(/\s/g, '')) ? '👑 Admin' : '👤 Member'}</td>
             <td>${u.registeredAt ? new Date(u.registeredAt).toLocaleString('lo-LA') : '—'}</td>
           </tr>
         `).join('');
@@ -447,6 +447,40 @@
     console.warn('Firebase admin sync unavailable:', e.message);
   }
 </script>
+<script type="module">
+  import { getDatabase, ref, onValue, remove } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js';
 
+  const db = getDatabase();
+  const ordersRef = ref(db, 'orders');
+
+  // ຟັງຊັນດຶງຂໍ້ມູນອໍເດີມາສະແດງ
+  onValue(ordersRef, (snapshot) => {
+    const data = snapshot.val();
+    const orderList = document.getElementById('admin-order-list');
+    if (!orderList) return;
+
+    orderList.innerHTML = ''; 
+
+    if (data) {
+      Object.entries(data).forEach(([key, order]) => {
+        orderList.innerHTML += `
+          <tr>
+            <td>${order.date}</td>
+            <td>${order.customer}</td>
+            <td>${order.items}</td>
+            <td>${Number(order.total).toLocaleString()} ກີບ</td>
+            <td><button onclick="deleteOrder('${key}')">ລຶບ</button></td>
+          </tr>
+        `;
+      });
+    }
+  });
+
+  // ຟັງຊັນລຶບອໍເດີ (ເພີ່ມໃຫ້ເປັນ Global function)
+  window.deleteOrder = async (key) => {
+    if (!confirm('ຢືນຢັນລຶບອໍເດີນີ້?')) return;
+    await remove(ref(db, 'orders/' + key));
+  };
+</script>
 </body>
 </html>
