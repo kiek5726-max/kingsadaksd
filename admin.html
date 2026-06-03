@@ -481,6 +481,7 @@
     if (!confirm('ຢືນຢັນລຶບອໍເດີນີ້?')) return;
     await remove(ref(db, 'orders/' + key));
   };
+<<<<<<< HEAD
   function saveItem() {
     // 1. ເອົາຄ່າຈາກ input
     let name = document.getElementById('itemName').value;
@@ -512,6 +513,8 @@
         listElement.innerHTML += `<li>${item} <button onclick="deleteItem(${index})">ລົບ</button></li>`;
     });
 }
+=======
+>>>>>>> 35cf519e688416a3e5fe7ad3f930ebc2f8bc7de0
 </script>
 </body>
 </html>
