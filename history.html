@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="lo">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ປະຫວັດສັ່ງຊື້ - KSD</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@300;400;500;700&display=swap">
+  <style>
+    body { background: #f0f2f5; }
+    .history-wrap {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 40px 20px 80px;
+    }
+    .history-wrap h1 {
+      color: #004d17;
+      font-size: 26px;
+      margin-bottom: 24px;
+      text-align: center;
+    }
+    .info-card, .orders-card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 28px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+      margin-bottom: 24px;
+    }
+    .info-card h2, .orders-card h2 {
+      font-size: 18px;
+      color: #1e293b;
+      margin-bottom: 18px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #e2e8f0;
+    }
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px 24px;
+    }
+    .info-item label {
+      display: block;
+      font-size: 12px;
+      color: #64748b;
+      margin-bottom: 3px;
+    }
+    .info-item span {
+      font-size: 15px;
+      color: #1e293b;
+      font-weight: 500;
+    }
+    .history-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    .history-table th, .history-table td {
+      padding: 12px 10px;
+      border-bottom: 1px solid #e2e8f0;
+      text-align: left;
+      vertical-align: top;
+    }
+    .history-table th {
+      background: #f8fafc;
+      color: #475569;
+      font-weight: 600;
+    }
+    .history-table .total { color: #ef4444; font-weight: 700; }
+    .empty-orders {
+      text-align: center;
+      color: #94a3b8;
+      padding: 40px 20px;
+    }
+    @media (max-width: 600px) {
+      .info-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body data-firebase="false" data-history-page="true">
+
+  <div class="history-wrap">
+    <h1>📋 ຂໍ້ມູນ ແລະ ປະຫວັດສັ່ງຊື້</h1>
+
+    <div class="info-card">
+      <h2>👤 ຂໍ້ມູນຜູ້ໃຊ້</h2>
+      <div class="info-grid" id="userInfoGrid"></div>
+    </div>
+
+    <div class="orders-card">
+      <h2>🛍️ ປະຫວັດການສັ່ງຊື້</h2>
+      <div style="overflow-x:auto;">
+        <table class="history-table">
+          <thead>
+            <tr>
+              <th>ວັນທີ</th>
+              <th>ລາຍການ</th>
+              <th>ທີ່ຢູ່ຈັດສົ່ງ</th>
+              <th>ຍອດລວມ</th>
+            </tr>
+          </thead>
+          <tbody id="userOrderList"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script src="ksd-common.js"></script>
+  <script>
+    function esc(s) {
+      return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    function loadUserHistory() {
+      const phone = normalizePhone(localStorage.getItem('user_phone') || '');
+      const user = findUserByPhone(phone) || {};
+
+      document.getElementById('userInfoGrid').innerHTML = `
+        <div class="info-item"><label>ຊື່ ແລະ ນາມສະກຸນ</label><span>${esc(user.name || localStorage.getItem('user_name') || '-')}</span></div>
+        <div class="info-item"><label>ເບີໂທ</label><span>${esc(user.phone || phone || '-')}</span></div>
+        <div class="info-item"><label>ອາຍຸ</label><span>${esc(user.age || localStorage.getItem('user_age') || '-')}</span></div>
+        <div class="info-item"><label>ຍົດ</label><span>${(user.role || localStorage.getItem('user_role')) === 'admin' ? '👑 Admin' : '👤 Member'}</span></div>
+        <div class="info-item" style="grid-column:1/-1;"><label>ທີ່ຢູ່</label><span>${esc(user.address || localStorage.getItem('user_address') || '-')}</span></div>
+        <div class="info-item"><label>ວັນທີລົງທະບຽນ</label><span>${user.registeredAt ? new Date(user.registeredAt).toLocaleString('lo-LA') : '-'}</span></div>
+      `;
+
+      const allOrders = JSON.parse(localStorage.getItem('backend_orders') || '[]');
+      const myOrders = allOrders.filter(o => normalizePhone(o.phone) === phone);
+
+      const tbody = document.getElementById('userOrderList');
+      if (!myOrders.length) {
+        tbody.innerHTML = '<tr><td colspan="4" class="empty-orders">ຍັງບໍ່ມີປະຫວັດການສັ່ງຊື້</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = myOrders.reverse().map(o => `
+        <tr>
+          <td>${esc(o.date)}</td>
+          <td>${esc(o.items)}</td>
+          <td>${esc(o.address || '-')}</td>
+          <td class="total">${Number(o.total).toLocaleString()} ກີບ</td>
+        </tr>
+      `).join('');
+    }
+
+    document.addEventListener('DOMContentLoaded', loadUserHistory);
+  </script>
+
+</body>
+</html>
