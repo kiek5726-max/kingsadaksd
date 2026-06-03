@@ -899,10 +899,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.key === 'Enter') searchProduct();
   });
 
-  // Setup real-time Firebase listeners
-  setupFirebaseListeners();
-});
-document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('DOMContentLoaded', () => {
     // ໃຊ້ Event Delegation ເພື່ອຈັບເຫດການກົດປຸ່ມລົບ
     document.addEventListener('click', function(e) {
         if (e.target && e.target.classList.contains('delete-btn')) {
@@ -918,3 +915,7 @@ function removeFromCart(index) {
     localStorage.setItem('cart', JSON.stringify(cart)); // ບັນທຶກໃໝ່
     location.reload(); // Refresh ໜ້າເວັບ
 }
+
+  // Setup real-time Firebase listeners
+  setupFirebaseListeners();
+});
