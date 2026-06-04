@@ -126,6 +126,8 @@ function toggleSidebar() {
 }
 
 function injectSharedUI() {
+  // ໜ້າ admin ມີ sidebar ຂອງຕົວເອງ — ບໍ່ inject ເພິ່ມ
+  if (document.body.dataset.skipSidebar === 'true') return;
   if (!document.getElementById('sidebar-toggle-btn')) {
     const toggle = document.createElement('div');
     toggle.id = 'sidebar-toggle-btn';
