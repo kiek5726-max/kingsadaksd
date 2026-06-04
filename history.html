@@ -66,6 +66,14 @@
       font-weight: 600;
     }
     .history-table .total { color: #ef4444; font-weight: 700; }
+    .badge-pending  { background:#fef3c7; color:#92400e; padding:2px 10px; border-radius:20px; font-size:12px; font-weight:600; white-space:nowrap; display:inline-block; }
+    .badge-delivered{ background:#dcfce7; color:#166534; padding:2px 10px; border-radius:20px; font-size:12px; font-weight:600; white-space:nowrap; display:inline-block; }
+    .slip-thumb { width:48px; height:48px; object-fit:cover; border-radius:6px; cursor:pointer; border:1px solid #e2e8f0; }
+    .slip-modal-bg { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:9999; align-items:center; justify-content:center; }
+    .slip-modal-bg.open { display:flex; }
+    .slip-modal-box { background:white; padding:20px; border-radius:12px; max-width:90vw; max-height:90vh; text-align:center; }
+    .slip-modal-box img { max-width:100%; max-height:70vh; border-radius:8px; }
+    .slip-modal-box button { margin-top:12px; padding:8px 24px; background:#1e293b; color:white; border:none; border-radius:6px; cursor:pointer; font-size:14px; }
     .empty-orders {
       text-align: center;
       color: #94a3b8;
@@ -77,6 +85,15 @@
   </style>
 </head>
 <body data-firebase="false" data-history-page="true">
+
+<!-- Slip modal -->
+<div class="slip-modal-bg" id="slipModal" onclick="if(event.target===this)closeSlipModal()">
+  <div class="slip-modal-box">
+    <p style="font-weight:600; margin-bottom:10px;">📎 ໃບບິນການໂອນເງິນ</p>
+    <img id="slipModalImg" src="" alt="slip">
+    <br><button onclick="closeSlipModal()">ປິດ</button>
+  </div>
+</div>
 
   <div class="history-wrap">
     <h1>📋 ຂໍ້ມູນ ແລະ ປະຫວັດສັ່ງຊື້</h1>
@@ -96,6 +113,8 @@
               <th>ລາຍການ</th>
               <th>ທີ່ຢູ່ຈັດສົ່ງ</th>
               <th>ຍອດລວມ</th>
+              <th>ສະຖານະ</th>
+              <th>ໃບບິນ</th>
             </tr>
           </thead>
           <tbody id="userOrderList"></tbody>
@@ -110,39 +129,92 @@
       return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     }
 
+    function openSlipModal(src) {
+      document.getElementById('slipModalImg').src = src;
+      document.getElementById('slipModal').classList.add('open');
+    }
+    function closeSlipModal() {
+      document.getElementById('slipModal').classList.remove('open');
+    }
+
+    function renderOrders(allOrders, myPhone) {
+      const myOrders = allOrders.filter(o => {
+        const op = String(o.phone || '').replace(/\s/g, '');
+        return op === myPhone;
+      });
+      const tbody = document.getElementById('userOrderList');
+      if (!myOrders.length) {
+        tbody.innerHTML = '<tr><td colspan="6" class="empty-orders">ຍັງບໍ່ມີປະຫວັດການສັ່ງຊື້</td></tr>';
+        return;
+      }
+      tbody.innerHTML = [...myOrders].reverse().map(o => {
+        const statusBadge = o.status === 'delivered'
+          ? '<span class="badge-delivered">✅ ສົ່ງແລ້ວ</span>'
+          : '<span class="badge-pending">⏳ ລໍຖ້າ</span>';
+        const slipCell = o.slipImage
+          ? `<img src="${esc(o.slipImage)}" class="slip-thumb" onclick="openSlipModal('${esc(o.slipImage)}')" title="ເບິ່ງໃບບິນ">`
+          : '<span style="color:#94a3b8;">—</span>';
+        return `
+          <tr>
+            <td>${esc(o.date||'—')}</td>
+            <td>${esc(o.items||'—')}</td>
+            <td>${esc(o.address||'—')}</td>
+            <td class="total">${Number(o.total||0).toLocaleString()} ກີບ</td>
+            <td>${statusBadge}</td>
+            <td>${slipCell}</td>
+          </tr>`;
+      }).join('');
+    }
+
     function loadUserHistory() {
-      const phone = normalizePhone(localStorage.getItem('user_phone') || '');
-      const user = findUserByPhone(phone) || {};
+      const myPhone = String(localStorage.getItem('user_phone') || '').replace(/\s/g, '');
+      const user = (typeof findUserByPhone === 'function' ? findUserByPhone(myPhone) : null) || {};
 
       document.getElementById('userInfoGrid').innerHTML = `
         <div class="info-item"><label>ຊື່ ແລະ ນາມສະກຸນ</label><span>${esc(user.name || localStorage.getItem('user_name') || '-')}</span></div>
-        <div class="info-item"><label>ເບີໂທ</label><span>${esc(user.phone || phone || '-')}</span></div>
+        <div class="info-item"><label>ເບີໂທ</label><span>${esc(user.phone || myPhone || '-')}</span></div>
         <div class="info-item"><label>ອາຍຸ</label><span>${esc(user.age || localStorage.getItem('user_age') || '-')}</span></div>
         <div class="info-item"><label>ຍົດ</label><span>${(user.role || localStorage.getItem('user_role')) === 'admin' ? '👑 Admin' : '👤 Member'}</span></div>
         <div class="info-item" style="grid-column:1/-1;"><label>ທີ່ຢູ່</label><span>${esc(user.address || localStorage.getItem('user_address') || '-')}</span></div>
         <div class="info-item"><label>ວັນທີລົງທະບຽນ</label><span>${user.registeredAt ? new Date(user.registeredAt).toLocaleString('lo-LA') : '-'}</span></div>
       `;
 
-      const allOrders = JSON.parse(localStorage.getItem('backend_orders') || '[]');
-      const myOrders = allOrders.filter(o => normalizePhone(o.phone) === phone);
-
-      const tbody = document.getElementById('userOrderList');
-      if (!myOrders.length) {
-        tbody.innerHTML = '<tr><td colspan="4" class="empty-orders">ຍັງບໍ່ມີປະຫວັດການສັ່ງຊື້</td></tr>';
-        return;
-      }
-
-      tbody.innerHTML = myOrders.reverse().map(o => `
-        <tr>
-          <td>${esc(o.date)}</td>
-          <td>${esc(o.items)}</td>
-          <td>${esc(o.address || '-')}</td>
-          <td class="total">${Number(o.total).toLocaleString()} ກີບ</td>
-        </tr>
-      `).join('');
+      // ລອງ load ຈາກ localStorage ກ່ອນ (ໄວ)
+      const localOrders = JSON.parse(localStorage.getItem('backend_orders') || '[]');
+      if (localOrders.length) renderOrders(localOrders, myPhone);
     }
 
     document.addEventListener('DOMContentLoaded', loadUserHistory);
+  </script>
+
+  <!-- Firebase real-time listener for orders -->
+  <script type="module">
+    import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js';
+    import { getDatabase, ref, onValue } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js';
+
+    const cfg = {
+      apiKey: 'AIzaSyB_JcmHbO_kOy9v3rvstiqDoIgBYndRfZI',
+      authDomain: 'ksd-kingsada.firebaseapp.com',
+      databaseURL: 'https://ksd-kingsada-default-rtdb.firebaseio.com',
+      projectId: 'ksd-kingsada',
+      storageBucket: 'ksd-kingsada.firebasestorage.app',
+      messagingSenderId: '984977062231',
+      appId: '1:984977062231:web:39ebfc780ebc875dec2612',
+    };
+    const app = getApps().length ? getApps()[0] : initializeApp(cfg);
+    const db = getDatabase(app);
+    const myPhone = String(localStorage.getItem('user_phone') || '').replace(/\s/g, '');
+
+    function esc(s) { return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    onValue(ref(db, 'orders'), snap => {
+      const data = snap.val();
+      if (!data) return;
+      const allOrders = Object.values(data);
+      localStorage.setItem('backend_orders', JSON.stringify(allOrders));
+      // re-render with latest from Firebase
+      if (typeof renderOrders === 'function') renderOrders(allOrders, myPhone);
+    });
   </script>
 
 </body>

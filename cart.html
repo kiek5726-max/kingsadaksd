@@ -167,6 +167,13 @@
           <label>ທີ່ຢູ່ຈັດສົ່ງ:</label>
           <textarea id="custAddress" rows="3" required placeholder="ບ້ານ, ເມືອງ, ແຂວງ..."></textarea>
         </div>
+        <div class="form-group">
+          <label>📎 ແນບໃບບິນການໂອນເງິນ (ຖ້າມີ):</label>
+          <input type="file" id="slipImage" accept="image/*" style="background:#1e293b; color:#cbd5e1; border:1px solid #475569; border-radius:6px; padding:8px; width:100%; box-sizing:border-box;">
+          <div id="slipPreview" style="margin-top:8px; display:none;">
+            <img id="slipPreviewImg" src="" style="max-width:100%; max-height:160px; border-radius:8px; border:1px solid #475569;">
+          </div>
+        </div>
         <button type="submit" class="btn-confirm">🛍️ ຢືນຢັນການສັ່ງຊື້</button>
       </form>
     </div>
@@ -245,37 +252,92 @@
       if (typeof updateCartBadge === 'function') updateCartBadge();
     }
 
+    // ===== SLIP PREVIEW =====
+    document.getElementById('slipImage')?.addEventListener('change', function() {
+      const file = this.files[0];
+      if (!file) { document.getElementById('slipPreview').style.display = 'none'; return; }
+      const reader = new FileReader();
+      reader.onload = e => {
+        document.getElementById('slipPreviewImg').src = e.target.result;
+        document.getElementById('slipPreview').style.display = 'block';
+      };
+      reader.readAsDataURL(file);
+    });
+
     // ===== SUBMIT ORDER =====
     async function submitOrder(e) {
   e.preventDefault();
   const cart = JSON.parse(localStorage.getItem('ksd_cart')) || [];
-  
   if (cart.length === 0) return alert('ກະຕ່າຫວ່າງເປົ່າ!');
 
-  // ສ້າງຂໍ້ມູນ order
+  const btn = document.querySelector('.btn-confirm');
+  btn.disabled = true;
+  btn.textContent = 'ກຳລັງສົ່ງ...';
+
+  // ອ່ານໃບບິນ slip ຖ້າມີ
+  let slipBase64 = '';
+  const slipFile = document.getElementById('slipImage')?.files[0];
+  if (slipFile) {
+    slipBase64 = await new Promise(resolve => {
+      const r = new FileReader();
+      r.onload = ev => resolve(ev.target.result);
+      r.readAsDataURL(slipFile);
+    });
+  }
+
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('lo-LA') + ' ' + now.toLocaleTimeString('lo-LA', { hour: '2-digit', minute: '2-digit' });
+
   const orderData = {
-    date: new Date().toISOString(), // ໃຊ້ ISO ສາກົນດີກວ່າ
+    date: dateStr,
     customer: document.getElementById('custName').value,
-    phone: document.getElementById('custPhone').value,
+    phone: String(document.getElementById('custPhone').value).replace(/\s/g, ''),
     address: document.getElementById('custAddress').value,
     total: cart.reduce((s, i) => s + (Number(i.price) * Number(i.quantity)), 0),
     items: cart.map(i => `${i.name} x${i.quantity}`).join(', '),
-    status: 'pending' // ເພີ່ມສະຖານະເພື່ອໃຫ້ Admin ຄຸ້ມຄອງໄດ້
+    status: 'pending',
+    slipImage: slipBase64,
   };
 
   try {
-    // ເຊື່ອມຕໍ່ຫາ Firebase Database (orders table)
+    const { initializeApp, getApps } = await import('https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js');
     const { getDatabase, ref, push } = await import('https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js');
-    const db = getDatabase(); // ຕ້ອງໄດ້ຮັບ db instance
-    const ordersRef = ref(db, 'orders');
-    
-    await push(ordersRef, orderData); // ສົ່ງຂຶ້ນ Cloud
-    
-    alert('ສັ່ງຊື້ສຳເລັດ!');
-    localStorage.removeItem('ksd_cart'); // ລຶບກະຕ່າຫຼັງສັ່ງສຳເລັດ
-    location.reload();
+
+    const FIREBASE_CONFIG = {
+      apiKey: 'AIzaSyB_JcmHbO_kOy9v3rvstiqDoIgBYndRfZI',
+      authDomain: 'ksd-kingsada.firebaseapp.com',
+      databaseURL: 'https://ksd-kingsada-default-rtdb.firebaseio.com',
+      projectId: 'ksd-kingsada',
+      storageBucket: 'ksd-kingsada.firebasestorage.app',
+      messagingSenderId: '984977062231',
+      appId: '1:984977062231:web:39ebfc780ebc875dec2612',
+    };
+
+    const app = getApps().length ? getApps()[0] : initializeApp(FIREBASE_CONFIG);
+    const db = getDatabase(app);
+    await push(ref(db, 'orders'), orderData);
+
+    // ບັນທຶກລົງ localStorage ດ້ວຍ (offline fallback)
+    const localOrders = JSON.parse(localStorage.getItem('backend_orders') || '[]');
+    localOrders.push(orderData);
+    localStorage.setItem('backend_orders', JSON.stringify(localOrders));
+
+    localStorage.removeItem('ksd_cart');
+    if (typeof updateCartBadge === 'function') updateCartBadge();
+    alert('✅ ສັ່ງຊື້ສຳເລັດ! ທາງທີມງານຈະຕິດຕໍ່ກັບ \n📞 ' + orderData.phone);
+    window.location.href = 'history.html';
   } catch (error) {
-    console.error("Error saving order: ", error);
+    console.error('Firebase error:', error);
+    // fallback: save local only
+    const localOrders = JSON.parse(localStorage.getItem('backend_orders') || '[]');
+    localOrders.push(orderData);
+    localStorage.setItem('backend_orders', JSON.stringify(localOrders));
+    alert('✅ ສັ່ງຊື້ສຳເລັດ (offline mode)');
+    localStorage.removeItem('ksd_cart');
+    window.location.href = 'history.html';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🛍️ ຢືນຢັນການສັ່ງຊື້';
   }
 }
 
