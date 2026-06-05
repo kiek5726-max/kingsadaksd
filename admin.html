@@ -460,35 +460,6 @@
 </script>
 
 <script type="module">
-  import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js';
-  import { getDatabase, ref, set, remove } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js';
-
-  const firebaseConfig = {
-    apiKey: 'AIzaSyB_JcmHbO_kOy9v3rvstiqDoIgBYndRfZI',
-    authDomain: 'ksd-kingsada.firebaseapp.com',
-    databaseURL: 'https://ksd-kingsada-default-rtdb.firebaseio.com',
-    projectId: 'ksd-kingsada',
-    storageBucket: 'ksd-kingsada.firebasestorage.app',
-    messagingSenderId: '984977062231',
-    appId: '1:984977062231:web:39ebfc780ebc875dec2612',
-  };
-
-  try {
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-
-    window._ksdSyncFirebase = async (list) => {
-      const data = {};
-      list.forEach(p => {
-        data[String(p.id)] = { name: p.name, price: p.price, desc: p.desc, image: p.image };
-      });
-      await set(ref(db, 'products'), data);
-    };
-  } catch (e) {
-    console.warn('Firebase admin sync unavailable:', e.message);
-  }
-</script>
-<script type="module">
   import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js';
   import { getDatabase, ref, set, remove, onValue, update } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js';
 
